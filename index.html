@@ -1,0 +1,662 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Counter Ledger | Billing Dashboard</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #1d2825;
+      --muted: #45554d;
+      --line: #d0dad2;
+      --paper: #fff;
+      --ground: #f3f5f2;
+      --accent: #16543e;
+      --accent-hover: #103f30;
+      --accent-soft: #e7f2eb;
+      --control: #75857a;
+      --focus: #14599c;
+      --loss: #9c3924;
+      --bar: #182b25;
+      --bar-text: #e4ede7;
+      --bar-mark: #f3d9a1;
+      --trim: #d8b46b;
+      --table-head: #e1e9e3;
+      --table-stripe: #f4f7f4;
+      --table-selected: #dbece0;
+      --due-fill: #163f74;
+      --due-edge: #8ac4ff;
+      --profit-fill: #10563e;
+      --profit-edge: #8fddb5;
+    }
+    :root[data-dashboard-palette="teal-navy"] {
+      --ink: #172f34; --muted: #36545b; --line: #bfd9d9; --paper: #fcffff; --ground: #edf6f6;
+      --accent: #115b60; --accent-hover: #0c4348; --accent-soft: #def1ef; --control: #62858a; --focus: #234f87;
+      --bar: #163148; --bar-text: #e0eff6; --bar-mark: #b7eee8; --trim: #79ccc3;
+      --table-head: #d8eaee; --table-stripe: #f0f8f8; --table-selected: #c9e8e4;
+      --due-fill: #115b60; --due-edge: #8de0db; --profit-fill: #243659; --profit-edge: #a9bded;
+    }
+    :root[data-dashboard-palette="charcoal-copper"] {
+      --ink: #2e2827; --muted: #5b4840; --line: #ddcec8; --paper: #fffdfb; --ground: #f7f2ef;
+      --accent: #7d411c; --accent-hover: #5c3017; --accent-soft: #f6e8df; --control: #897166; --focus: #70401e;
+      --bar: #343840; --bar-text: #f6ebe5; --bar-mark: #f1bd8f; --trim: #d89262;
+      --table-head: #ebe0da; --table-stripe: #faf4ef; --table-selected: #eed8c8;
+      --due-fill: #343840; --due-edge: #b7bfcc; --profit-fill: #7d411c; --profit-edge: #f1bd8f;
+    }
+    :root[data-dashboard-palette="indigo-olive"] {
+      --ink: #282638; --muted: #4c4862; --line: #d5d0e0; --paper: #fefeff; --ground: #f4f2f8;
+      --accent: #3e3977; --accent-hover: #302956; --accent-soft: #eef0de; --control: #7c728d; --focus: #544294;
+      --bar: #302b52; --bar-text: #efeafa; --bar-mark: #e0e8a9; --trim: #bfc97a;
+      --table-head: #e6e2f0; --table-stripe: #f7f5fa; --table-selected: #e3e7c7;
+      --due-fill: #3e3977; --due-edge: #c4bbfc; --profit-fill: #475511; --profit-edge: #d3dd89;
+    }
+    * { box-sizing: border-box; }
+    [hidden] { display: none !important; }
+    body { margin: 0; color: var(--ink); background: var(--ground); font: 16px/1.5 "Trebuchet MS", Verdana, sans-serif; }
+    button, input, select, textarea { font: inherit; }
+    button { cursor: pointer; }
+    button:disabled { cursor: default; opacity: .48; }
+    :focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
+    h1, h2, p { margin: 0; }
+    h1 { font: 700 2.5rem/1.12 Georgia, serif; }
+    h2 { font-size: 1.25rem; line-height: 1.25; }
+    .icon { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
+    .symbols { position: absolute; width: 0; height: 0; overflow: hidden; }
+    .top { background: var(--bar); color: #fff; border-bottom: 3px solid var(--trim); }
+    .top-inner, main { width: min(100% - 48px, 1440px); margin-inline: auto; }
+    .top-inner { min-height: 65px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .brand { display: flex; align-items: center; gap: 11px; font-size: 1.125rem; font-weight: 700; }
+    .brand-mark { width: 36px; height: 36px; display: grid; place-items: center; border: 1px solid var(--trim); border-radius: 6px; color: var(--bar-mark); }
+    .top-label { color: var(--bar-text); font-size: .9375rem; }
+    main { padding-block: 28px 40px; }
+    .heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 20px; margin-bottom: 18px; }
+    .palette-picker { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+    .palette-picker label { margin: 0; }
+    .palette-picker select { min-height: 44px; max-width: 100%; padding: 6px 8px; border: 1px solid var(--control); border-radius: 5px; background: var(--paper); color: var(--ink); }
+    .palette-swatches { display: inline-flex; gap: 4px; }
+    .palette-swatches span { width: 14px; height: 14px; border-radius: 3px; background: var(--due-fill); }
+    .palette-swatches span + span { background: var(--profit-fill); }
+    .overview { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); border: 1px solid var(--line); border-top: 3px solid var(--accent); margin-bottom: 24px; background: var(--paper); }
+    .metric { display: grid; grid-template-rows: 1fr auto; gap: 4px; padding: 12px 18px 14px; min-width: 0; }
+    .metric + .metric { border-left: 1px solid var(--line); }
+    .metric-due { background: var(--due-fill); box-shadow: inset 0 3px var(--due-edge); }
+    .metric-accent { background: var(--profit-fill); box-shadow: inset 0 3px var(--profit-edge); }
+    .metric-accent.metric-negative { background: #8c2f25; box-shadow: inset 0 3px #ffb6a7; }
+    .caption, .sub { color: var(--muted); font-size: .9375rem; }
+    .caption { font-weight: 700; }
+    .metric-due, .metric-due .caption, .metric-due .sub, .metric-accent, .metric-accent .caption { color: #fff; }
+    .amount { display: block; font-size: 1.75rem; line-height: 1.25; font-weight: 700; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+    .workbench { display: grid; grid-template-columns: minmax(0, 1fr) minmax(250px, 320px); gap: 24px; padding: 0 0 20px; }
+    .section-heading { display: flex; align-items: center; gap: 9px; margin-bottom: 12px; }
+    .step { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 4px; flex: 0 0 28px; background: var(--accent); color: white; font-size: .9375rem; }
+    .entry { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 10px; }
+    label { display: block; font-weight: 700; margin-bottom: 5px; }
+    textarea, input { width: 100%; min-height: 44px; color: var(--ink); background: var(--paper); border: 1px solid var(--control); border-radius: 5px; padding: 8px 11px; }
+    textarea { display: block; min-height: 72px; resize: vertical; }
+    textarea::placeholder, input::placeholder { color: var(--muted); opacity: 1; }
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 44px; padding: 7px 12px; border: 1px solid var(--control); border-radius: 5px; color: var(--ink); background: var(--paper); font-weight: 700; text-align: center; }
+    .btn:not(:disabled):hover { background: var(--accent-soft); }
+    .primary { color: #fff; background: var(--accent); border-color: var(--accent); }
+    .primary:not(:disabled):hover { background: var(--accent-hover); }
+    .icon-btn { width: 44px; padding-inline: 0; flex-shrink: 0; }
+    .codes { padding-left: 24px; border-left: 1px solid var(--line); min-width: 0; }
+    .codes .section-heading .icon { color: var(--accent); }
+    #manage { margin-top: 10px; }
+    .code-list, .discounts { display: flex; flex-wrap: wrap; gap: 7px; }
+    .code-tag { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px 7px; border: 1px solid var(--line); border-radius: 4px; background: var(--paper); padding: 4px 8px; font-size: .9375rem; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+    .code-tag strong { min-width: 0; color: var(--accent); }
+    .bill { margin-top: 20px; }
+    .bill-toolbar { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: end; gap: 12px; margin-bottom: 14px; }
+    .bill-toolbar .section-heading { margin: 0; }
+    .bill-heading { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+    .bill-actions { display: flex; flex-wrap: wrap; align-items: end; gap: 8px; min-width: 0; }
+    .search-field { width: min(100%, 200px); }
+    .controls { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; padding: 13px 0; border-block: 1px solid var(--line); }
+    .controls .section-heading { margin: 0; }
+    .discount { min-width: 54px; padding-inline: 8px; }
+    .discount[aria-pressed="true"] { background: var(--accent); color: white; border-color: var(--accent); box-shadow: inset 0 -3px 0 var(--trim); }
+    .discount[aria-pressed="true"]:hover { background: var(--accent-hover); }
+    .custom { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; }
+    .custom label { margin: 0; }
+    .custom input { width: 98px; }
+    .table-wrap { overflow-x: auto; background: var(--paper); border: 1px solid var(--line); border-radius: 6px; scrollbar-color: var(--control) var(--table-head); }
+    table { border-collapse: separate; border-spacing: 0; width: 100%; text-align: right; font-variant-numeric: tabular-nums; }
+    th, td { padding: 12px 10px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+    thead th { font-size: .9375rem; background: var(--table-head); }
+    th:first-child, td:first-child { text-align: left; padding-left: 14px; }
+    tbody tr:nth-child(even) { background: var(--table-stripe); }
+    th:first-child, .item-key { position: sticky; left: 0; z-index: 1; border-right: 1px solid var(--line); }
+    .item-key { background: var(--paper); width: 7rem; max-width: 9rem; white-space: normal; overflow-wrap: anywhere; }
+    tr:nth-child(even) .item-key { background: var(--table-stripe); }
+    th:last-child, td:last-child { padding-right: 14px; }
+    th small, td small { display: block; color: var(--muted); font-size: .875rem; font-weight: 400; }
+    td strong { display: block; font-size: 1rem; }
+    th.final-price-heading { background: var(--due-fill); color: #fff; box-shadow: inset 0 3px var(--due-edge); }
+    .final-price-heading small { color: inherit; }
+    .final-price { vertical-align: top; background: color-mix(in srgb, var(--due-fill) 8%, var(--paper)); box-shadow: inset 3px 0 var(--due-edge); }
+    .final-price strong { color: var(--due-fill); font-size: 1.125rem; }
+    .final-price.is-custom { background: color-mix(in srgb, var(--due-fill) 15%, var(--paper)); box-shadow: inset 3px 0 var(--due-fill); }
+    .final-price .custom-price-label { color: var(--due-fill); font-weight: 700; }
+    .price-editor { display: flex; justify-content: flex-end; gap: 6px; margin-top: 7px; }
+    .price-editor input { width: 7rem; }
+    .price-editor .btn { padding-inline: 8px; }
+    .active-column { background: var(--accent-soft); }
+    th.active-column { background: var(--table-selected); }
+    .loss, .loss small { color: var(--loss); }
+    tbody tr:last-child > * { border-bottom: 0; }
+    .empty { text-align: center !important; height: 172px; white-space: normal; }
+    .empty .icon { width: 29px; height: 29px; color: var(--accent); }
+    .empty .btn { margin-top: 9px; }
+    .feedback { min-height: 0; margin-top: 8px; overflow-wrap: anywhere; }
+    .feedback:empty { margin: 0; }
+    .storage { margin-top: 12px; font-size: .9375rem; }
+    dialog { width: min(500px, 100% - 28px); max-height: 90dvh; border: 1px solid var(--line); border-radius: 8px; background: var(--paper); color: var(--ink); padding: 22px; }
+    dialog::backdrop { background: #17262099; }
+    .dialog-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; gap: 14px; }
+    .share-preview { width: 100%; max-height: 28vh; overflow: auto; margin: 0 0 12px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 5px; background: var(--ground); font: inherit; white-space: pre-wrap; overflow-wrap: anywhere; }
+    .phone-field { display: grid; grid-template-columns: auto minmax(0, 1fr); }
+    .phone-prefix { display: grid; place-items: center; padding-inline: 12px; border: 1px solid var(--control); border-right: 0; border-radius: 5px 0 0 5px; background: var(--accent-soft); font-weight: 700; }
+    .phone-field input { border-radius: 0 5px 5px 0; }
+    .share-submit { margin-top: 12px; }
+    .code-form { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; }
+    .form-actions { grid-column: 1 / -1; display: flex; gap: 8px; }
+    .backup-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; border-top: 1px solid var(--line); padding-top: 12px; margin-top: 14px; }
+    .backup-actions .sub { margin-right: auto; }
+    .editor-list { list-style: none; padding: 0; margin: 16px 0 0; }
+    .editor-list li { border-top: 1px solid var(--line); padding-block: 7px; display: flex; align-items: center; gap: 8px; }
+    .editor-list li .code-tag { margin-right: auto; }
+    @media (max-width: 760px) {
+      .top-inner, main { width: calc(100% - 32px); }
+      main { padding-block: 24px; }
+      .workbench { grid-template-columns: 1fr; gap: 16px; }
+      .codes { padding: 14px 0 0; border-left: 0; border-top: 1px solid var(--line); }
+      .overview { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .metric:nth-child(3) { border-left: 0; }
+      .metric:nth-child(n + 3) { border-top: 1px solid var(--line); }
+      .metric:last-child { grid-column: 1 / -1; border-left: 0; }
+      .empty { text-align: left !important; }
+    }
+    @media (max-width: 440px) {
+      .top-label { display: none; }
+      h1 { font-size: 2rem; }
+      .metric { padding: 10px 12px; }
+      .amount { font-size: 1.375rem; }
+      .entry { grid-template-columns: 1fr; }
+      .controls .section-heading, .discounts { flex-basis: 100%; }
+      .form-actions { flex-wrap: wrap; }
+    }
+  </style>
+</head>
+<body>
+  <svg class="symbols" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <symbol id="receipt" viewBox="0 0 24 24"><path d="M5 3l2 2 2-2 3 2 3-2 2 2 2-2v18l-2-2-2 2-3-2-3 2-2-2-2 2zM9 10h6m-6 4h6"/></symbol>
+    <symbol id="plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="tag" viewBox="0 0 24 24"><path d="M20 13l-7 7a2 2 0 0 1-3 0l-7-7V4h9l8 7a2 2 0 0 1 0 2Z"/><path d="M7.5 8h.01" stroke-width="3"/></symbol>
+    <symbol id="settings" viewBox="0 0 24 24"><path d="M4 7h16M4 17h16"/><circle cx="9" cy="7" r="2.5" fill="white"/><circle cx="15" cy="17" r="2.5" fill="white"/></symbol>
+    <symbol id="trash" viewBox="0 0 24 24"><path d="M4 7h16M10 11v6m4-6v6M6 7l1 13h10l1-13M9 7V4h6v3"/></symbol>
+    <symbol id="close" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></symbol>
+    <symbol id="edit" viewBox="0 0 24 24"><path d="m14 6 4 4M4 20l5-1L20 8l-4-4L5 15z"/></symbol>
+    <symbol id="send" viewBox="0 0 24 24"><path d="m22 2-7 20-4-9-9-4 20-7ZM22 2 11 13"/></symbol>
+  </svg>
+
+  <header class="top">
+    <div class="top-inner">
+      <div class="brand"><span class="brand-mark"><svg class="icon" aria-hidden="true"><use href="#receipt"/></svg></span>Counter Ledger</div>
+      <span class="top-label">Pricing &amp; billing</span>
+    </div>
+  </header>
+
+  <main>
+    <div class="heading">
+      <h1>Billing dashboard</h1>
+      <div class="palette-picker">
+        <label for="total-palette">Dashboard colours</label>
+        <select id="total-palette">
+          <option value="blue-green">Blue + Green</option>
+          <option value="teal-navy">Teal + Navy</option>
+          <option value="charcoal-copper">Charcoal + Copper</option>
+          <option value="indigo-olive">Indigo + Olive</option>
+        </select>
+        <span class="palette-swatches" aria-hidden="true"><span></span><span></span></span>
+      </div>
+    </div>
+    <section class="overview" aria-label="Bill totals">
+      <div class="metric"><span class="caption">Original selling total</span><strong class="amount" id="selling-total">0.00</strong></div>
+      <div class="metric"><span class="caption">Real cost total</span><strong class="amount" id="cost-total">0.00</strong></div>
+      <div class="metric metric-due"><div><span class="caption">Customer pays</span><br><span class="sub" id="discount-label">No discount</span></div><strong class="amount" id="bill-total">0.00</strong></div>
+      <div class="metric metric-accent"><span class="caption">Profit at selected discount</span><strong class="amount" id="profit-total">0.00</strong></div>
+      <div class="metric"><div><span class="caption">Total discount</span><br><span class="sub" id="total-discount-rate">0%</span></div><strong class="amount" id="total-discount">0.00</strong></div>
+    </section>
+
+    <div class="workbench">
+      <section aria-labelledby="entry-title">
+        <h2 class="section-heading" id="entry-title"><span class="step" aria-hidden="true">1</span>Add bill items</h2>
+        <form class="entry" id="entry-form">
+          <div><label for="items-input">Selling price and code</label><textarea id="items-input" rows="2" placeholder="1000 d, 6000 cl.." required></textarea></div>
+          <button class="btn primary" type="submit"><svg class="icon" aria-hidden="true"><use href="#plus"/></svg>Add items</button>
+        </form>
+        <p class="feedback" id="entry-feedback" role="status"></p>
+      </section>
+      <section class="codes" aria-labelledby="codes-title">
+        <h2 class="section-heading" id="codes-title"><svg class="icon" aria-hidden="true"><use href="#tag"/></svg>Markup codes</h2>
+        <div class="code-list" id="code-list"></div>
+        <button class="btn" type="button" id="manage"><svg class="icon" aria-hidden="true"><use href="#settings"/></svg>Manage markup codes</button>
+      </section>
+    </div>
+
+    <section class="controls" aria-labelledby="discounts-label">
+      <h2 class="section-heading" id="discounts-label"><span class="step" aria-hidden="true">2</span>Bill discount</h2>
+      <div class="discounts" role="group" aria-labelledby="discounts-label" id="discounts"></div>
+      <form class="custom" id="custom-form">
+        <label for="custom-input">Custom (%)</label>
+        <input type="number" id="custom-input" min="0" max="100" step="0.01" required>
+        <button class="btn" type="submit">Apply</button>
+      </form>
+    </section>
+
+    <section class="bill" aria-labelledby="bill-title">
+      <div class="bill-toolbar">
+        <div class="bill-heading"><h2 class="section-heading" id="bill-title"><span class="step" aria-hidden="true">3</span>Item pricing</h2><span class="sub" id="item-count" role="status">0 items</span></div>
+        <div class="bill-actions">
+          <div class="search-field"><label for="item-search">Find item key</label><input type="search" id="item-search" placeholder="e.g. 1000 D" autocomplete="off"></div>
+          <button class="btn primary" id="share-bill" type="button" disabled><svg class="icon" aria-hidden="true"><use href="#send"/></svg>Send bill on WhatsApp</button>
+          <button class="btn" id="clear" type="button" disabled><svg class="icon" aria-hidden="true"><use href="#trash"/></svg>Clear bill</button>
+        </div>
+      </div>
+      <div class="table-wrap" tabindex="0" role="region" aria-label="Item discount comparison">
+        <table aria-label="Price and profit for each item">
+          <thead id="bill-header"></thead>
+          <tbody id="bill-rows"></tbody>
+        </table>
+      </div>
+      <p class="storage loss" role="status" id="storage-error" hidden>Browser storage is unavailable. Changes will be lost when this page closes.</p>
+    </section>
+  </main>
+
+  <dialog id="share-dialog" aria-labelledby="share-title">
+    <div class="dialog-top"><h2 id="share-title">Send bill on WhatsApp</h2><button class="btn icon-btn" type="button" id="close-share" aria-label="Close WhatsApp preview" title="Close"><svg class="icon" aria-hidden="true"><use href="#close"/></svg></button></div>
+    <form id="share-form">
+      <label id="preview-label">Message preview</label>
+      <pre class="share-preview" id="share-preview" tabindex="0" role="region" aria-labelledby="preview-label"></pre>
+      <label for="customer-phone">Mobile number</label>
+      <div class="phone-field">
+        <span class="phone-prefix" id="phone-prefix">+91</span>
+        <input id="customer-phone" type="tel" autocomplete="off" placeholder="98765 43210" aria-describedby="phone-prefix" required>
+      </div>
+      <p class="feedback" id="share-feedback" role="status"></p>
+      <button class="btn primary share-submit" type="submit">Open WhatsApp</button>
+    </form>
+  </dialog>
+
+  <dialog id="code-dialog" aria-labelledby="dialog-title">
+    <div class="dialog-top"><h2 id="dialog-title">Manage markup codes</h2><button class="btn icon-btn" type="button" id="close-dialog" aria-label="Close markup codes" title="Close"><svg class="icon" aria-hidden="true"><use href="#close"/></svg></button></div>
+    <form class="code-form" id="code-form">
+      <div><label for="code-name">Code</label><input id="code-name" placeholder="e.g. k" pattern="[A-Za-z][A-Za-z0-9]{0,11}" maxlength="12" autocomplete="off" required></div>
+      <div><label for="code-rate">Markup on cost (%)</label><input id="code-rate" type="number" placeholder="e.g. 100" min="0" max="10000" step="0.01" required></div>
+      <div class="form-actions"><button class="btn primary" id="save-code" type="submit">Add code</button><button class="btn" id="cancel-edit" type="button" hidden>Cancel edit</button></div>
+    </form>
+    <div class="backup-actions" role="group" aria-label="Markup code backup">
+      <span class="sub">Text backup</span>
+      <button class="btn" type="button" id="export-codes">Export .txt</button>
+      <button class="btn" type="button" id="import-codes">Import .txt</button>
+      <input type="file" id="code-file" accept=".txt,text/plain" hidden>
+    </div>
+    <p class="feedback" id="code-feedback" role="status"></p>
+    <ul class="editor-list" id="editor-list" aria-label="Saved codes"></ul>
+  </dialog>
+
+  <script>
+    'use strict';
+
+    const presets = [10, 15, 20, 25, 30];
+    const storageKey = 'counter-ledger-v1';
+    const get = id => document.getElementById(id);
+    const number = new Intl.NumberFormat(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const discountRate = new Intl.NumberFormat(undefined, { style: 'percent', maximumFractionDigits: 2 });
+    const money = cents => number.format(cents / 100);
+    const percent = rate => `${rate}%`;
+    const costDigits = { '.': 0, s: 1, H: 2, a: 3, m: 4, c: 5, l: 6, o: 7, t: 8, h: 9 };
+    const displayCode = item => item.purchaseCost === undefined ? item.code.toUpperCase() : item.code;
+    const formatItemKey = item => `${item.selling / 100} ${displayCode(item)}`;
+    const normalizeKey = value => value.toLowerCase().replace(/[\s,]+/g, '');
+    const toMinor = value => Math.round(Number(value) * 100);
+    const realCost = (selling, markup) => Math.round(selling * 10000 / (10000 + toMinor(markup)));
+    const discounted = (selling, rate) => Math.round(selling * (10000 - toMinor(rate)) / 10000);
+    const finalItemPrice = (item, rate) => item.customPrice ?? discounted(item.selling, rate);
+    let state = { codes: { d: 100 }, items: [], selected: 0, custom: null };
+    let editing = null;
+
+    try {
+      const saved = localStorage.getItem(storageKey);
+      if (saved) state = JSON.parse(saved);
+    } catch {
+      get('storage-error').hidden = false;
+    }
+
+    function save() {
+      try {
+        localStorage.setItem(storageKey, JSON.stringify(state));
+      } catch {
+        get('storage-error').hidden = false;
+      }
+    }
+
+    function feedback(id, message, error = false) {
+      const element = get(id);
+      element.textContent = message;
+      element.classList.toggle('loss', error);
+    }
+
+    function iconButton(icon, label, action, index) {
+      return `<button type="button" class="btn icon-btn" data-${action}="${index}" aria-label="${label}" title="${label}"><svg class="icon" aria-hidden="true"><use href="#${icon}"/></svg></button>`;
+    }
+
+    function renderCodes() {
+      const entries = Object.entries(state.codes);
+      const tags = entries.map(([code, rate]) => `<span class="code-tag"><strong>${code.toUpperCase()}</strong> +${percent(rate)}</span>`);
+      get('export-codes').disabled = entries.length === 0;
+      get('code-list').innerHTML = tags.join('') || '<span class="sub">No markup codes</span>';
+      get('editor-list').innerHTML = tags.map((tag, index) => `<li>${tag}${iconButton('edit', `Edit ${entries[index][0].toUpperCase()}`, 'edit', index)}${iconButton('trash', `Delete ${entries[index][0].toUpperCase()}`, 'delete', index)}</li>`).join('');
+    }
+
+    function exportCodes() {
+      const lines = Object.entries(state.codes).map(([code, rate]) => `${code.toUpperCase()}=${rate}`);
+      const url = URL.createObjectURL(new Blob([lines.join('\r\n'), '\r\n'], { type: 'text/plain;charset=utf-8' }));
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'counter-ledger-markup-codes.txt';
+      document.body.append(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+
+    async function importCodes(event) {
+      const input = event.currentTarget;
+      const file = input.files[0];
+      input.value = '';
+      if (!file) return;
+
+      let text;
+      try {
+        text = await file.text();
+      } catch {
+        return feedback('code-feedback', 'Could not read the backup file. No codes changed.', true);
+      }
+
+      const imports = new Map();
+      for (const [index, rawLine] of text.split(/\r\n|\n|\r/).entries()) {
+        const line = rawLine.trim();
+        if (!line) continue;
+        const match = /^([a-z][a-z0-9]{0,11})\s*=\s*(\d+(?:\.\d{1,2})?)$/i.exec(line);
+        if (!match || Number(match[2]) > 10000) {
+          return feedback('code-feedback', `Line ${index + 1}: expected a code and markup from 0 to 10000, like D=100. No codes changed.`, true);
+        }
+        const code = match[1].toLowerCase();
+        if (imports.has(code)) return feedback('code-feedback', `Line ${index + 1}: duplicate code ${code.toUpperCase()}. No codes changed.`, true);
+        imports.set(code, Number(match[2]));
+      }
+
+      if (!imports.size) return feedback('code-feedback', 'No markup codes found in this file.', true);
+      const conflicts = [...imports].filter(([code, rate]) => Object.hasOwn(state.codes, code) && state.codes[code] !== rate).length;
+      if (conflicts && !confirm(`Replace ${conflicts} existing markup ${conflicts === 1 ? 'rate' : 'rates'} with the values in this file?`)) {
+        return feedback('code-feedback', 'Import canceled. No codes changed.');
+      }
+
+      state.codes = { ...state.codes, ...Object.fromEntries(imports) };
+      save();
+      resetCodeForm();
+      renderCodes();
+      renderBill();
+      feedback('code-feedback', `${imports.size} markup ${imports.size === 1 ? 'code' : 'codes'} imported.`);
+    }
+
+    function renderBill() {
+      const rates = state.custom === null || state.custom === 0 || presets.includes(state.custom) ? presets : [...presets, state.custom];
+      const query = normalizeKey(get('item-search').value);
+      const itemCount = state.items.length;
+      get('discounts').innerHTML = [0, ...rates].map(rate => `<button type="button" class="btn discount" data-rate="${rate}" aria-pressed="${state.selected === rate}">${percent(rate)}</button>`).join('');
+      get('bill-header').innerHTML = `<tr><th scope="col">Item key</th><th scope="col" class="final-price-heading">Final price<small>Custom price per item</small></th><th scope="col">Item code</th><th scope="col">Original price<small>Selling price</small></th><th scope="col">Real cost<small>Before markup</small></th>${rates.map(rate => `<th scope="col"${state.selected === rate ? ' class="active-column"' : ''}>${percent(rate)} off<small>Price / Profit</small></th>`).join('')}<th scope="col">Action</th></tr>`;
+
+      let totalSelling = 0;
+      let totalCost = 0;
+      let totalBill = 0;
+      let hasCustomPrice = false;
+      const rows = state.items.flatMap((item, index) => {
+        const { selling, markup, customPrice } = item;
+        const cost = item.purchaseCost ?? realCost(selling, markup);
+        const finalPrice = finalItemPrice(item, state.selected);
+        totalSelling += selling;
+        totalCost += cost;
+        totalBill += finalPrice;
+        hasCustomPrice ||= customPrice !== undefined;
+        const price = selling / 100;
+        const itemKey = formatItemKey(item);
+        if (query && !normalizeKey(itemKey).includes(query) && !normalizeKey(`${price.toFixed(2)}${item.code}`).includes(query)) return [];
+        const itemDiscount = selling - finalPrice;
+        const extraDiscount = discounted(selling, state.selected) - finalPrice;
+        const customLabel = customPrice === undefined ? '' : '<small class="custom-price-label">Custom price applied</small>';
+        const comparison = extraDiscount > 0 ? `<small>${money(extraDiscount)} extra discount</small>` : extraDiscount < 0 ? `<small>${money(-extraDiscount)} less discount</small>` : '';
+        const editor = `<form class="price-editor" data-item-price="${index}"><input type="number" inputmode="decimal" aria-label="Custom price for ${itemKey}" min="0" max="${price}" step="0.01" value="${customPrice === undefined ? '' : customPrice / 100}" placeholder="${finalPrice / 100}" required><button class="btn" type="submit">Set</button>${customPrice === undefined ? '' : '<button class="btn" type="button" data-reset-price>Reset</button>'}</form>`;
+        const scenarios = rates.map(rate => {
+          const price = discounted(selling, rate);
+          const profit = price - cost;
+          return `<td${state.selected === rate ? ' class="active-column"' : ''}><strong>${money(price)}</strong><small${profit < 0 ? ' class="loss"' : ''}>${money(profit)} profit</small></td>`;
+        }).join('');
+        const codeLabel = markup === undefined ? 'Purchase cost' : `+${percent(markup)} markup`;
+        return `<tr><th scope="row" class="item-key">${itemKey}</th><td class="final-price${customLabel ? ' is-custom' : ''}"><strong>${money(finalPrice)}</strong>${customLabel}<small>${money(itemDiscount)} off (${discountRate.format(itemDiscount / selling)})</small>${comparison}${editor}</td><td><strong>${displayCode(item)}</strong><small>${codeLabel}</small></td><td><strong>${money(selling)}</strong></td><td><strong>${money(cost)}</strong></td>${scenarios}<td>${iconButton('trash', `Remove item ${index + 1}`, 'remove', index)}</td></tr>`;
+      });
+      const emptyContent = itemCount ? '<p><strong>No matching items</strong></p>' : `<p><strong>No items on this bill</strong></p><button class="btn" type="button" id="example" ${Object.hasOwn(state.codes, 'd') ? '' : 'hidden'}>Fill example</button>`;
+      get('bill-rows').innerHTML = rows.join('') || `<tr><td class="empty" colspan="${rates.length + 6}"><svg class="icon" aria-hidden="true"><use href="#receipt"/></svg>${emptyContent}</td></tr>`;
+      get('item-count').textContent = `${query && itemCount ? `${rows.length} of ` : ''}${itemCount} ${itemCount === 1 ? 'item' : 'items'}`;
+      get('clear').disabled = itemCount === 0;
+      get('share-bill').disabled = itemCount === 0;
+      get('selling-total').textContent = money(totalSelling);
+      get('cost-total').textContent = money(totalCost);
+      get('bill-total').textContent = money(totalBill);
+      get('discount-label').textContent = hasCustomPrice ? 'Includes custom prices' : state.selected === 0 ? 'No discount' : `${percent(state.selected)} off`;
+      get('profit-total').textContent = money(totalBill - totalCost);
+      get('profit-total').closest('.metric').classList.toggle('metric-negative', totalBill < totalCost);
+      get('total-discount').textContent = money(totalSelling - totalBill);
+      get('total-discount-rate').textContent = discountRate.format(totalSelling ? (totalSelling - totalBill) / totalSelling : 0);
+    }
+
+    function addItems(event) {
+      event.preventDefault();
+      const input = get('items-input');
+      const lines = input.value.split(/[,\n]+/).map(entry => entry.trim()).filter(Boolean);
+      if (!lines.length) return feedback('entry-feedback', 'Enter at least one selling price and code.', true);
+      const items = [];
+      for (const [index, entry] of lines.entries()) {
+        const match = /^(\d+(?:\.\d{1,2})?)\s*([a-z.][a-z0-9.]{0,11})$/i.exec(entry);
+        if (!match || Number(match[1]) <= 0 || Number(match[1]) > 1e9) {
+          return feedback('entry-feedback', `Item ${index + 1}: enter a price from 0.01 to 1000000000 followed by a code, e.g. 1000 d. No items were added.`, true);
+        }
+        const [, price, rawCode] = match;
+        const selling = toMinor(price);
+        if (rawCode.length > 1 && /^[shamclot.]+$/i.test(rawCode)) {
+          const purchasePrice = [...rawCode].map(letter => costDigits[letter === 'H' ? letter : letter.toLowerCase()]).join('');
+          items.push({ code: rawCode, selling, purchaseCost: toMinor(purchasePrice) });
+          continue;
+        }
+        const code = rawCode.toLowerCase();
+        if (!Object.hasOwn(state.codes, code)) return feedback('entry-feedback', `Unknown code ${code.toUpperCase()}. Add it under Markup codes first. No items were added.`, true);
+        items.push({ code, selling, markup: state.codes[code] });
+      }
+      state.items.push(...items);
+      input.value = '';
+      save();
+      renderBill();
+      feedback('entry-feedback', `${items.length} ${items.length === 1 ? 'item' : 'items'} added.`);
+      input.focus();
+    }
+
+    function resetCodeForm() {
+      editing = null;
+      get('code-form').reset();
+      get('code-name').readOnly = false;
+      get('save-code').textContent = 'Add code';
+      get('cancel-edit').hidden = true;
+    }
+
+    get('entry-form').addEventListener('submit', addItems);
+    get('item-search').addEventListener('input', renderBill);
+    get('discounts').addEventListener('click', event => {
+      const button = event.target.closest('[data-rate]');
+      if (!button) return;
+      state.selected = Number(button.dataset.rate);
+      save();
+      renderBill();
+      get('discounts').querySelector('[aria-pressed="true"]').focus();
+    });
+    get('custom-form').addEventListener('submit', event => {
+      event.preventDefault();
+      state.custom = get('custom-input').valueAsNumber;
+      state.selected = state.custom;
+      save();
+      renderBill();
+    });
+    function updateItemPrice(form, price) {
+      const index = Number(form.dataset.itemPrice);
+      if (price === undefined) delete state.items[index].customPrice;
+      else state.items[index].customPrice = price;
+      save();
+      renderBill();
+      get('bill-rows').querySelector(`[data-item-price="${index}"] input`).focus();
+    }
+
+    get('bill-rows').addEventListener('submit', event => {
+      event.preventDefault();
+      const form = event.target;
+      updateItemPrice(form, toMinor(form.querySelector('input').valueAsNumber));
+    });
+    get('bill-rows').addEventListener('click', event => {
+      const reset = event.target.closest('[data-reset-price]');
+      if (reset) {
+        updateItemPrice(reset.closest('form'));
+        return;
+      }
+      const example = event.target.closest('#example');
+      if (example) {
+        get('items-input').value = '1000 d';
+        get('items-input').focus();
+        return;
+      }
+      const button = event.target.closest('[data-remove]');
+      if (!button) return;
+      state.items.splice(Number(button.dataset.remove), 1);
+      save();
+      renderBill();
+      feedback('entry-feedback', 'Item removed.');
+      const next = get('bill-rows').querySelector(`[data-remove="${button.dataset.remove}"]`);
+      (next || get('items-input')).focus();
+    });
+    get('share-bill').addEventListener('click', () => {
+      const { items, selected } = state;
+      let total = 0;
+      const lines = items.map(item => {
+        const price = finalItemPrice(item, selected);
+        total += price;
+        return `${formatItemKey(item)}: ${money(price)}`;
+      });
+      get('share-preview').textContent = ['Counter Ledger | Bill', '', ...lines, '', `Total to pay: ${money(total)}`].join('\n');
+      feedback('share-feedback', '');
+      const phone = get('customer-phone');
+      phone.value = '';
+      get('share-dialog').showModal();
+      phone.focus();
+    });
+    get('close-share').addEventListener('click', () => get('share-dialog').close());
+    get('share-dialog').addEventListener('close', () => { get('customer-phone').value = ''; });
+    get('share-form').addEventListener('submit', event => {
+      event.preventDefault();
+      const phone = get('customer-phone');
+      const localNumber = phone.value.replace(/[\s()-]/g, '').replace(/^\+91/, '');
+      if (!/^\d{10}$/.test(localNumber)) {
+        feedback('share-feedback', 'Enter a 10-digit mobile number.', true);
+        phone.focus();
+        return;
+      }
+      const url = new URL(`https://wa.me/91${localNumber}`);
+      url.searchParams.set('text', get('share-preview').textContent);
+      window.open(url.href, '_blank', 'noopener,noreferrer');
+      get('share-dialog').close();
+    });
+    get('clear').addEventListener('click', () => {
+      if (!confirm('Clear all items on this bill?')) return;
+      state.items = [];
+      state.selected = 0;
+      get('item-search').value = '';
+      save();
+      renderBill();
+      feedback('entry-feedback', 'Bill cleared.');
+      get('items-input').focus();
+    });
+    get('manage').addEventListener('click', () => {
+      resetCodeForm();
+      feedback('code-feedback', '');
+      get('code-dialog').showModal();
+      get('code-name').focus();
+    });
+    get('close-dialog').addEventListener('click', () => get('code-dialog').close());
+    get('export-codes').addEventListener('click', exportCodes);
+    get('import-codes').addEventListener('click', () => get('code-file').click());
+    get('code-file').addEventListener('change', importCodes);
+    get('cancel-edit').addEventListener('click', () => {
+      resetCodeForm();
+      feedback('code-feedback', '');
+      get('code-name').focus();
+    });
+    get('editor-list').addEventListener('click', event => {
+      const button = event.target.closest('[data-edit], [data-delete]');
+      if (!button) return;
+      const code = Object.keys(state.codes)[Number(button.dataset.edit ?? button.dataset.delete)];
+      if (button.hasAttribute('data-delete')) {
+        delete state.codes[code];
+        if (editing === code) resetCodeForm();
+        save();
+        renderCodes();
+        renderBill();
+        feedback('code-feedback', `Code ${code.toUpperCase()} removed.`);
+        get('code-name').focus();
+        return;
+      }
+      editing = code;
+      get('code-name').value = code;
+      get('code-name').readOnly = true;
+      get('code-rate').value = state.codes[code];
+      get('save-code').textContent = 'Save markup';
+      get('cancel-edit').hidden = false;
+      feedback('code-feedback', '');
+      get('code-rate').focus();
+    });
+    get('code-form').addEventListener('submit', event => {
+      event.preventDefault();
+      const code = editing ?? get('code-name').value.toLowerCase();
+      if (editing === null && Object.hasOwn(state.codes, code)) return feedback('code-feedback', `Code ${code.toUpperCase()} already exists. Edit it in the list.`, true);
+      state.codes[code] = get('code-rate').valueAsNumber;
+      save();
+      renderCodes();
+      renderBill();
+      resetCodeForm();
+      feedback('code-feedback', `Code ${code.toUpperCase()} saved.`);
+      get('code-name').focus();
+    });
+
+    const palette = get('total-palette');
+    const dashboard = document.documentElement;
+    if (state.totalPalette) palette.value = state.totalPalette;
+    if (palette.selectedIndex < 0) palette.selectedIndex = 0;
+    dashboard.dataset.dashboardPalette = palette.value;
+    palette.addEventListener('change', () => {
+      dashboard.dataset.dashboardPalette = palette.value;
+      state.totalPalette = palette.value;
+      save();
+    });
+    if (state.custom !== null) get('custom-input').value = state.custom;
+    renderCodes();
+    renderBill();
+  </script>
+</body>
+</html>
