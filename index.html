@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-values-hidden="true">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -68,6 +68,9 @@
     .top-inner { min-height: 65px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
     .brand { display: flex; align-items: center; gap: 11px; font-size: 1.125rem; font-weight: 700; }
     .brand-mark { width: 36px; height: 36px; display: grid; place-items: center; border: 1px solid var(--trim); border-radius: 6px; color: var(--bar-mark); }
+    .visibility-toggle { display: grid; place-items: center; width: 44px; height: 44px; padding: 0; border: 1px solid var(--trim); border-radius: 5px; background: transparent; color: var(--bar-text); }
+    .visibility-toggle:hover { background: #ffffff1a; }
+    [data-values-hidden="true"] .sensitive-value, [data-values-hidden="false"] .hidden-value { display: none; }
     .top-label { color: var(--bar-text); font-size: .9375rem; }
     main { padding-block: 28px 40px; }
     .heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 20px; margin-bottom: 18px; }
@@ -82,7 +85,7 @@
     .metric + .metric { border-left: 1px solid var(--line); }
     .metric-due { background: var(--due-fill); box-shadow: inset 0 3px var(--due-edge); }
     .metric-accent { background: var(--profit-fill); box-shadow: inset 0 3px var(--profit-edge); }
-    .metric-accent.metric-negative { background: #8c2f25; box-shadow: inset 0 3px #ffb6a7; }
+    [data-values-hidden="false"] .metric-accent.metric-negative { background: #8c2f25; box-shadow: inset 0 3px #ffb6a7; }
     .caption, .sub { color: var(--muted); font-size: .9375rem; }
     .caption { font-weight: 700; }
     .metric-due, .metric-due .caption, .metric-due .sub, .metric-accent, .metric-accent .caption { color: #fff; }
@@ -198,11 +201,13 @@
     <symbol id="close" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></symbol>
     <symbol id="edit" viewBox="0 0 24 24"><path d="m14 6 4 4M4 20l5-1L20 8l-4-4L5 15z"/></symbol>
     <symbol id="send" viewBox="0 0 24 24"><path d="m22 2-7 20-4-9-9-4 20-7ZM22 2 11 13"/></symbol>
+    <symbol id="eye" viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></symbol>
+    <symbol id="eye-off" viewBox="0 0 24 24"><path d="M3 3l18 18M10.6 5.1A11 11 0 0 1 12 5c6.5 0 10 7 10 7a15.7 15.7 0 0 1-3.1 3.9M6.2 6.2A16.2 16.2 0 0 0 2 12s3.5 7 10 7a10.6 10.6 0 0 0 5-1.3M9.9 9.9a3 3 0 0 0 4.2 4.2"/></symbol>
   </svg>
 
   <header class="top">
     <div class="top-inner">
-      <div class="brand"><span class="brand-mark"><svg class="icon" aria-hidden="true"><use href="#receipt"/></svg></span>Counter Ledger</div>
+      <div class="brand"><span class="brand-mark"><svg class="icon" aria-hidden="true"><use href="#receipt"/></svg></span>Counter Ledger <button class="visibility-toggle" id="toggle-values" type="button" aria-label="Reveal cost and profit values" aria-pressed="false" title="Reveal cost and profit values"><svg class="icon" aria-hidden="true"><use href="#eye"/></svg></button></div>
       <span class="top-label">Pricing &amp; billing</span>
     </div>
   </header>
@@ -223,9 +228,9 @@
     </div>
     <section class="overview" aria-label="Bill totals">
       <div class="metric"><span class="caption">Original selling total</span><strong class="amount" id="selling-total">0.00</strong></div>
-      <div class="metric"><span class="caption">Real cost total</span><strong class="amount" id="cost-total">0.00</strong></div>
+      <div class="metric"><span class="caption">Real cost total</span><strong class="amount"><span class="sensitive-value" id="cost-total">0.00</span><span class="hidden-value" aria-label="Hidden">----</span></strong></div>
       <div class="metric metric-due"><div><span class="caption">Customer pays</span><br><span class="sub" id="discount-label">No discount</span></div><strong class="amount" id="bill-total">0.00</strong></div>
-      <div class="metric metric-accent"><span class="caption">Profit at selected discount</span><strong class="amount" id="profit-total">0.00</strong></div>
+      <div class="metric metric-accent"><span class="caption">Profit at selected discount</span><strong class="amount"><span class="sensitive-value" id="profit-total">0.00</span><span class="hidden-value" aria-label="Hidden">----</span></strong></div>
       <div class="metric"><div><span class="caption">Total discount</span><br><span class="sub" id="total-discount-rate">0%</span></div><strong class="amount" id="total-discount">0.00</strong></div>
     </section>
 
@@ -442,10 +447,10 @@
         const scenarios = rates.map(rate => {
           const price = discounted(selling, rate);
           const profit = price - cost;
-          return `<td${state.selected === rate ? ' class="active-column"' : ''}><strong>${money(price)}</strong><small${profit < 0 ? ' class="loss"' : ''}>${money(profit)} profit</small></td>`;
+          return `<td${state.selected === rate ? ' class="active-column"' : ''}><strong>${money(price)}</strong><small><span class="sensitive-value${profit < 0 ? ' loss' : ''}">${money(profit)}</span><span class="hidden-value" aria-label="Hidden">----</span> profit</small></td>`;
         }).join('');
         const codeLabel = markup === undefined ? 'Purchase cost' : `+${percent(markup)} markup`;
-        return `<tr><th scope="row" class="item-key">${itemKey}</th><td class="final-price${customLabel ? ' is-custom' : ''}"><strong>${money(finalPrice)}</strong>${customLabel}<small>${money(itemDiscount)} off (${discountRate.format(itemDiscount / selling)})</small>${comparison}${editor}</td><td><strong>${displayCode(item)}</strong><small>${codeLabel}</small></td><td><strong>${money(selling)}</strong></td><td><strong>${money(cost)}</strong></td>${scenarios}<td>${iconButton('trash', `Remove item ${index + 1}`, 'remove', index)}</td></tr>`;
+        return `<tr><th scope="row" class="item-key">${itemKey}</th><td class="final-price${customLabel ? ' is-custom' : ''}"><strong>${money(finalPrice)}</strong>${customLabel}<small>${money(itemDiscount)} off (${discountRate.format(itemDiscount / selling)})</small>${comparison}${editor}</td><td><strong>${displayCode(item)}</strong><small>${codeLabel}</small></td><td><strong>${money(selling)}</strong></td><td><strong><span class="sensitive-value">${money(cost)}</span><span class="hidden-value" aria-label="Hidden">----</span></strong></td>${scenarios}<td>${iconButton('trash', `Remove item ${index + 1}`, 'remove', index)}</td></tr>`;
       });
       const emptyContent = itemCount ? '<p><strong>No matching items</strong></p>' : `<p><strong>No items on this bill</strong></p><button class="btn" type="button" id="example" ${Object.hasOwn(state.codes, 'd') ? '' : 'hidden'}>Fill example</button>`;
       get('bill-rows').innerHTML = rows.join('') || `<tr><td class="empty" colspan="${rates.length + 6}"><svg class="icon" aria-hidden="true"><use href="#receipt"/></svg>${emptyContent}</td></tr>`;
@@ -646,6 +651,16 @@
 
     const palette = get('total-palette');
     const dashboard = document.documentElement;
+    const toggleValues = get('toggle-values');
+    toggleValues.addEventListener('click', () => {
+      const reveal = dashboard.dataset.valuesHidden === 'true';
+      dashboard.dataset.valuesHidden = String(!reveal);
+      const label = `${reveal ? 'Hide' : 'Reveal'} cost and profit values`;
+      toggleValues.setAttribute('aria-label', label);
+      toggleValues.setAttribute('aria-pressed', String(reveal));
+      toggleValues.title = label;
+      toggleValues.querySelector('use').setAttribute('href', reveal ? '#eye-off' : '#eye');
+    });
     if (state.totalPalette) palette.value = state.totalPalette;
     if (palette.selectedIndex < 0) palette.selectedIndex = 0;
     dashboard.dataset.dashboardPalette = palette.value;
